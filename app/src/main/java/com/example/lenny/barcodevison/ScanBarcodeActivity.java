@@ -19,6 +19,11 @@ import com.google.android.gms.vision.barcode.BarcodeDetector;
 
 import java.io.IOException;
 
+import static com.google.android.gms.vision.barcode.Barcode.DRIVER_LICENSE;
+import static com.google.android.gms.vision.barcode.Barcode.EAN_13;
+import static com.google.android.gms.vision.barcode.Barcode.PRODUCT;
+import static com.google.android.gms.vision.barcode.Barcode.UPC_A;
+
 /**
  * Created by lenny on 4/7/17.
  */
@@ -38,7 +43,9 @@ public class ScanBarcodeActivity extends Activity {
     }
 
     private void createCameraSource() {
-        BarcodeDetector barcodeDetector = new BarcodeDetector.Builder(this).build();
+        BarcodeDetector barcodeDetector = new BarcodeDetector.Builder(this).setBarcodeFormats(UPC_A).
+
+                build();
 
         final CameraSource cameraSource = new CameraSource.Builder(this, barcodeDetector)
                 .setAutoFocusEnabled(true)
@@ -62,9 +69,9 @@ public class ScanBarcodeActivity extends Activity {
                         return;
                     }
                     cameraSource.start(cameraPreview.getHolder());
-               }catch (IOException e){
+                } catch (IOException e) {
 
-               }
+                }
 
 
             }
@@ -78,9 +85,9 @@ public class ScanBarcodeActivity extends Activity {
             public void surfaceDestroyed(SurfaceHolder holder) {
                 cameraSource.stop();
             }
-        } );
+        });
 
-        barcodeDetector.setProcessor(new Detector.Processor<Barcode>(){
+        barcodeDetector.setProcessor(new Detector.Processor<Barcode>() {
 
             @Override
             public void release() {
@@ -90,10 +97,10 @@ public class ScanBarcodeActivity extends Activity {
             @Override
             public void receiveDetections(Detector.Detections<Barcode> detections) {
                 final SparseArray<Barcode> barcodes = detections.getDetectedItems();
-                if(barcodes.size()>0){
+                if (barcodes.size() > 0) {
                     Intent intent = new Intent();
                     intent.putExtra("barcode", barcodes.valueAt(0));
-                    setResult(CommonStatusCodes.SUCCESS,intent);
+                    setResult(CommonStatusCodes.SUCCESS, intent);
                     finish();
 
                 }

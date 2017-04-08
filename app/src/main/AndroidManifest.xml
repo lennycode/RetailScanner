@@ -1,7 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
 
     package="com.example.lenny.barcodevison">
-
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" />
+    <uses-feature android:name="android.hardware.camera.autofocus" />
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -16,8 +18,20 @@
         <meta-data
             android:name="com.google.gms.vision.DEPENDENCIES"
             android:value="barcode" />
+        <activity android:name=".MainActivity"
+        android:label="Barcode Reader" >
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
 
 
+
+        </intent-filter>
+        </activity>
+
+
+        <activity android:name=".ScanBarcodeActivity"
+            android:label="Scan Barcode" />
     </application>
 
 </manifest>

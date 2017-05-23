@@ -2,22 +2,33 @@ package com.example.lenny.barcodevison;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.hardware.Camera;
+import android.hardware.camera2.CameraManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.util.SparseArray;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.View;
+import android.widget.Button;
+import android.widget.Toast;
 
 import com.google.android.gms.common.api.CommonStatusCodes;
+
 import com.google.android.gms.vision.CameraSource;
 import com.google.android.gms.vision.Detector;
 import com.google.android.gms.vision.barcode.Barcode;
 import com.google.android.gms.vision.barcode.BarcodeDetector;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 
 import static com.google.android.gms.vision.barcode.Barcode.DRIVER_LICENSE;
 import static com.google.android.gms.vision.barcode.Barcode.EAN_13;
@@ -31,26 +42,79 @@ import static com.google.android.gms.vision.barcode.Barcode.UPC_A;
 public class ScanBarcodeActivity extends Activity {
 
     SurfaceView cameraPreview;
+    CameraSource cameraSource;
+    CameraManager camManager;
+    Button buttonFlash;
+    private Camera cam;
+    private boolean isFlashOn = false;
+    private boolean hasFlash;
+
+    //Kudos:
+    //https://stackoverflow.com/questions/35811411/accessing-autofocus-flash-with-google-vision-barcode-reader
+    //You aren't allowed to open a new camera instance, but we get the cameraSource's camera instance to work with.
+    private static Camera getCamera(@NonNull CameraSource cameraSource) {
+        Field[] declaredFields = CameraSource.class.getDeclaredFields();
+
+        for (Field field : declaredFields) {
+            if (field.getType() == Camera.class) {
+                field.setAccessible(true);
+                try {
+                    Camera camera = (Camera) field.get(cameraSource);
+                    if (camera != null) {
+                        return camera;
+                    }
+                    return null;
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+                break;
+            }
+        }
+        return null;
+    }
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_scan_barcode);
-
+        buttonFlash = (Button) findViewById(R.id.btnFlash);
 
         cameraPreview = (SurfaceView) findViewById(R.id.camera_preview);
+        camManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+        hasFlash = getApplicationContext().getPackageManager()
+                .hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH);
+        if (!hasFlash) {
+            buttonFlash.setVisibility(View.INVISIBLE);
+        } else {
+
+        }
+
+        buttonFlash.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                if (!isFlashOn) {
+                    flashLightOn();
+                    buttonFlash.setText("FLASH\nOFF");
+                } else {
+                    flashLightOff();
+                    buttonFlash.setText("FLASH\nON");
+                }
+
+            }
+        });
         createCameraSource();
     }
 
     private void createCameraSource() {
-        BarcodeDetector barcodeDetector = new BarcodeDetector.Builder(this).setBarcodeFormats(UPC_A).
+        BarcodeDetector barcodeDetector = new BarcodeDetector.Builder(this).setBarcodeFormats(UPC_A).build();
 
-                build();
-
-        final CameraSource cameraSource = new CameraSource.Builder(this, barcodeDetector)
+        cameraSource  = new CameraSource.Builder(this, barcodeDetector)
                 .setAutoFocusEnabled(true)
                 .setRequestedPreviewSize(1600, 1024)
-                .build();
+                .setFacing(CameraSource.CAMERA_FACING_BACK).build() ;
+
+
 
         cameraPreview.getHolder().addCallback(new SurfaceHolder.Callback() {
 
@@ -59,13 +123,9 @@ public class ScanBarcodeActivity extends Activity {
 
                 try {
                     if (ActivityCompat.checkSelfPermission(ScanBarcodeActivity.this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                        // TODO: Consider calling
-                        //    ActivityCompat#requestPermissions
-                        // here to request the missing permissions, and then overriding
-                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                        //                                          int[] grantResults)
-                        // to handle the case where the user grants the permission. See the documentation
-                        // for ActivityCompat#requestPermissions for more details.
+                        ActivityCompat.requestPermissions(ScanBarcodeActivity.this,
+                                new String[]{Manifest.permission.CAMERA},
+                                1);
                         return;
                     }
                     cameraSource.start(cameraPreview.getHolder());
@@ -108,4 +168,40 @@ public class ScanBarcodeActivity extends Activity {
         });
     }
 
+    public void flashLightOn() {
+
+        try {
+            if (getPackageManager().hasSystemFeature(
+                    PackageManager.FEATURE_CAMERA_FLASH)) {
+                cam = getCamera(cameraSource);
+
+                Camera.Parameters p = cam.getParameters();
+                p.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
+                cam.setParameters(p);
+                isFlashOn = true;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(getBaseContext(), "Unable to Light Flash!",
+                    Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    public void flashLightOff() {
+        try {
+            if (getPackageManager().hasSystemFeature(
+                    PackageManager.FEATURE_CAMERA_FLASH)) {
+                cam = getCamera(cameraSource);
+                Camera.Parameters p = cam.getParameters();
+                p.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
+                cam.setParameters(p);
+                isFlashOn = false;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(getBaseContext(), "Unable To Extinguish Flash",
+                    Toast.LENGTH_SHORT).show();
+        }
+    }
 }
+

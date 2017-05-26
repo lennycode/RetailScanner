@@ -34,6 +34,7 @@ import static com.google.android.gms.vision.barcode.Barcode.DRIVER_LICENSE;
 import static com.google.android.gms.vision.barcode.Barcode.EAN_13;
 import static com.google.android.gms.vision.barcode.Barcode.PRODUCT;
 import static com.google.android.gms.vision.barcode.Barcode.UPC_A;
+import static com.google.android.gms.vision.barcode.Barcode.UPC_E;
 
 /**
  * Created by lenny on 4/7/17.
@@ -107,7 +108,7 @@ public class ScanBarcodeActivity extends Activity {
     }
 
     private void createCameraSource() {
-        BarcodeDetector barcodeDetector = new BarcodeDetector.Builder(this).setBarcodeFormats(UPC_A).build();
+        BarcodeDetector barcodeDetector = new BarcodeDetector.Builder(this).setBarcodeFormats(UPC_A|UPC_E|EAN_13).build();
 
         cameraSource  = new CameraSource.Builder(this, barcodeDetector)
                 .setAutoFocusEnabled(true)

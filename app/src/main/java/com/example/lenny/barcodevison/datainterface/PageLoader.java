@@ -19,6 +19,7 @@ import org.jsoup.select.Elements;
 import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
@@ -46,7 +48,7 @@ import retrofit2.converter.scalars.ScalarsConverterFactory;
 
 public class PageLoader {
     private static final String TAG = "APILoader";
-    private static final String Spacer = "";
+    private static final String Spacer = "                                                                                                                                              ";
     NumberFormat formatter = NumberFormat.getCurrencyInstance();
 
     private RetailAPI buildClient() {
@@ -157,41 +159,60 @@ public class PageLoader {
     }
 
 
-    public void getWalmartInfo(String upcCode) {
+    public void queryRetailSources(String upc) {
+        Observable.zip(getWalmartInfox(upc), getBBInfo(upc), getAmazonInfo(upc), getNEInfo(upc), (wm, bb, ne, am) -> {
+            //NO Java 8 in older API :(
+            // Stream.of(...).flatMap(Collection::stream).collect(Collectors.toList());
+            ;
+            List<ProdBucket> pb = new ArrayList<ProdBucket>();
+            pb.addAll(wm);
+            pb.addAll(bb);
+            pb.addAll(ne);
+            pb.addAll(am);
+
+            return Observable.just(pb);
+        }).flatMap(s -> {
+            return s;
+        }).
+                subscribe(s -> {
+                    EventBus.getDefault().post(new MessageEvent<List<ProdBucket>>((List<ProdBucket>) s));
+                    Log.e(TAG, "Success");
+                });
+
+    }
+
+
+    public Observable<List<ProdBucket>> getWalmartInfox(String upcCode) {
         Pattern px = Pattern.compile("(\\{\"productId\".*?),\"preOrderAvailable\"");
-        buildClientrxW(Settings.walmartEndpoint).loadWmProductPage(upcCode).subscribeOn(Schedulers.newThread())
+        return buildClientrxW(Settings.walmartEndpoint).loadWmProductPage(upcCode).subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
                 .flatMap(s -> {
-                            ObjectMapper srMapper;
-                            Map<String, Object> map = new HashMap<String, Object>();
-                            List<ProdBucket> allMatches = new ArrayList<ProdBucket>();
-                            allMatches.add(new ProdBucket("Walmart"+ Spacer) );
-                            try {
-                                srMapper = new ObjectMapper();
-                                Matcher tmpJson = px.matcher(s);
-                                while (tmpJson.find()) {
-                                    String json = tmpJson.group(1) + "}";
+                    ObjectMapper srMapper;
+                    Map<String, Object> map = new HashMap<String, Object>();
+                    List<ProdBucket> allMatches = new ArrayList<ProdBucket>();
+                    allMatches.add(new ProdBucket("Walmart" + Spacer));
+                    try {
+                        srMapper = new ObjectMapper();
+                        Matcher tmpJson = px.matcher(s);
+                        while (tmpJson.find()) {
+                            String json = tmpJson.group(1) + "}";
 
-                                    allMatches.add(new ProdBucket(
-                                            srMapper.readTree(json).path("title").toString().replace("\"",""),
-                                            srMapper.readTree(json).path("primaryOffer").path("offerPrice").toString().replace("\"",""),
-                                            srMapper.readTree(json).path("imageUrl").toString().replace("\"","")
-                                    ));
-                                    //map = srMapper.readValue(tmpJson.group(1)+"}", new TypeReference<HashMap<String, Object>>() {}
-                                }
+                            allMatches.add(new ProdBucket(
+                                    srMapper.readTree(json).path("title").toString().replace("\"", ""),
+                                    srMapper.readTree(json).path("primaryOffer").path("offerPrice").toString().replace("\"", ""),
+                                    srMapper.readTree(json).path("imageUrl").toString().replace("\"", "")
+                            ));
+                            //map = srMapper.readValue(tmpJson.group(1)+"}", new TypeReference<HashMap<String, Object>>() {}
+                        }
+
+                        return Observable.just(allMatches);
 
 
-                                return  Observable.just(allMatches);
+                    } catch (Exception e) {
+                        return Observable.just(allMatches);
+                    }
 
-
-                            } catch (Exception e) {
-                                return null;
-                            }
-
-                        }).subscribe(s -> {
-                        EventBus.getDefault().post(new MessageEvent<List<ProdBucket>>((List<ProdBucket>) s));
-                        Log.e(TAG, "Success");
-                    });
+                });
 
 
 // JSOUP fails on this page, bug listed
@@ -209,50 +230,111 @@ public class PageLoader {
 //                    }catch (Exception e){
 //                        return Observable.just(new ProdBucket(null, null, null));
 //                    }
-                    //    } )
+        //    } )
 
 
-                }
+    }
+
+
+    public void getWalmartInfo(String upcCode) {
+        Pattern px = Pattern.compile("(\\{\"productId\".*?),\"preOrderAvailable\"");
+        buildClientrxW(Settings.walmartEndpoint).loadWmProductPage(upcCode).subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .flatMap(s -> {
+                    ObjectMapper srMapper;
+                    Map<String, Object> map = new HashMap<String, Object>();
+                    List<ProdBucket> allMatches = new ArrayList<ProdBucket>();
+                    allMatches.add(new ProdBucket("Walmart" + Spacer));
+                    try {
+                        srMapper = new ObjectMapper();
+                        Matcher tmpJson = px.matcher(s);
+                        while (tmpJson.find()) {
+                            String json = tmpJson.group(1) + "}";
+
+                            allMatches.add(new ProdBucket(
+                                    srMapper.readTree(json).path("title").toString().replace("\"", ""),
+                                    srMapper.readTree(json).path("primaryOffer").path("offerPrice").toString().replace("\"", ""),
+                                    srMapper.readTree(json).path("imageUrl").toString().replace("\"", "")
+                            ));
+                            //map = srMapper.readValue(tmpJson.group(1)+"}", new TypeReference<HashMap<String, Object>>() {}
+                        }
+
+
+                        return Observable.just(allMatches);
+
+
+                    } catch (Exception e) {
+                        return Observable.just(allMatches);
+                    }
+
+                }).subscribe(s -> {
+            EventBus.getDefault().post(new MessageEvent<List<ProdBucket>>((List<ProdBucket>) s));
+            Log.e(TAG, "Success");
+        });
+
+
+// JSOUP fails on this page, bug listed
+//                    Document doc = Jsoup.parse(s);
+//                    try {
+//                        //Elements frame = doc.select("div.s-item-container");
+//                       // Elements frame = doc.select("li.celwidget");
+//                        Elements frame = doc.select("div").attr("data-tl-id","ProductTileListView-0");
+//                        //frame.get(0).select("span").attr("aria-label")
+//                        String desc = frame.get(0).select("h2").text();
+//                        //String price = frame.get(0).select("span").attr("aria-label");
+//                        String price =    findLowest(frame);
+//                        String image = frame.get(0).select("img").attr("src");
+//                        return Observable.just(new ProdBucket(desc, price, image));
+//                    }catch (Exception e){
+//                        return Observable.just(new ProdBucket(null, null, null));
+//                    }
+        //    } )
+
+
+    }
 
     //http://www.bestbuy.com/site/searchpage.jsp?st=703113017230&_dyncharset=UTF-8&id=pcat17071&type=page&sc=Global&cp=1&nrp=&sp=&qp=&list=n&af=true&iht=y&usc=All+Categories&ks=960&keys=keys
 
-    public void getBBInfo(String upcCode) {
 
-        Map<String, String> paramMap = new HashMap<String,String>();
-        paramMap.put("st",upcCode);
-        paramMap.put("_dyncharset","UTF-8");
-        paramMap.put("id","pcat17071");
-        paramMap.put("type","page");
-        paramMap.put("sc","Global");
-        paramMap.put("cp","1");
+    public Observable<List<ProdBucket>> getBBInfo(String upcCode) {
 
-        paramMap.put("sp","");
-        paramMap.put("qp","");
-        paramMap.put("list","n");
-        paramMap.put("af","true");
-        paramMap.put("iht","y");
-        paramMap.put("usc","All+Categories");
-        paramMap.put("ks","960");
-        paramMap.put("keys","keys");
-        buildClientrxW(Settings.bestbuyEndpoint).loadBbProductPage( paramMap).subscribeOn(Schedulers.newThread())
+        Map<String, String> paramMap = new HashMap<String, String>();
+        paramMap.put("st", upcCode);
+        paramMap.put("_dyncharset", "UTF-8");
+        paramMap.put("id", "pcat17071");
+        paramMap.put("type", "page");
+        paramMap.put("sc", "Global");
+        paramMap.put("cp", "1");
+
+        paramMap.put("sp", "");
+        paramMap.put("qp", "");
+        paramMap.put("list", "n");
+        paramMap.put("af", "true");
+        paramMap.put("iht", "y");
+        paramMap.put("usc", "All+Categories");
+        paramMap.put("ks", "960");
+        paramMap.put("keys", "keys");
+        return buildClientrxW(Settings.bestbuyEndpoint).loadBbProductPage(paramMap).subscribeOn(Schedulers.newThread())
 
                 .observeOn(AndroidSchedulers.mainThread())
                 .flatMap(s -> {
                     Document doc = Jsoup.parse(s);
                     List<ProdBucket> allMatches = new ArrayList<ProdBucket>();
-                    allMatches.add(new ProdBucket("Best Buy"+Spacer));
+                    allMatches.add(new ProdBucket("Best Buy" + Spacer));
                     try {
                         //Elements frame = doc.select("div.s-item-container");
-                        Elements frame =  doc.select("div.list-items") ;
-                        int elCount= frame.size();
-
-                        for (int i=0; i<elCount;i++) {
+                        Elements frame = doc.select("div.list-items");
+                        int elCount = frame.size();
+                        String price;
+                        for (int i = 0; i < elCount; i++) {
 
                             String desc = frame.select("div.list-item").get(i).select("h4").text();
-
-                            String price ="$"+frame.select("div.pb-purchase-price").select("span").get(0).attr("aria-label").replace("Your price for this item is ","");
-
-                            String image = frame.select("div.thumb").select("img").attr("data-src").split(";")[0];
+                            if (frame.select("div.pb-purchase-price").size() > 0) {
+                                price = "$" + frame.select("div.list-item").get(i).select("div.pb-purchase-price").select("span").get(0).attr("aria-label").replace("Your price for this item is ", "");
+                            } else {
+                                price = frame.select("div.list-item").get(i).select("div.pb-regular-price").attr("aria-label").replace("The price was ", "") + " See Cart";
+                            }
+                            String image = frame.select("div.list-item").get(i).select("div.thumb").select("img").attr("data-src").split(";")[0];
                             allMatches.add(new ProdBucket(
                                     desc,
                                     price,
@@ -262,40 +344,37 @@ public class PageLoader {
                         }
                         return Observable.just(allMatches);
                     } catch (Exception e) {
-                        return Observable.just(new ProdBucket(null, null, null));
+
                     }
-                })
-                .subscribe(s -> {
-                    EventBus.getDefault().post(new MessageEvent<List<ProdBucket>>((List<ProdBucket>) s));
-                    Log.e(TAG, "Success");
+                    return Observable.just(allMatches);
                 });
 
 
     }
 
-    public void getNEInfo(String upcCode) {
+    public Observable<List<ProdBucket>> getNEInfo(String upcCode) {
 
-        buildClientrxW(Settings.neweggEndpoint).loadNeProductPage("ENE",0,"BESTMATCH", upcCode,"-1",1).subscribeOn(Schedulers.newThread())
+        return buildClientrxW(Settings.neweggEndpoint).loadNeProductPage("ENE", 0, "BESTMATCH", upcCode, "-1", 1).subscribeOn(Schedulers.newThread())
 
                 .observeOn(AndroidSchedulers.mainThread())
                 .flatMap(s -> {
                     Document doc = Jsoup.parse(s);
                     List<ProdBucket> allMatches = new ArrayList<ProdBucket>();
-                    allMatches.add(new ProdBucket("NewEgg"+Spacer));
+                    allMatches.add(new ProdBucket("NewEgg" + Spacer));
                     try {
                         //Elements frame = doc.select("div.s-item-container");
                         Elements frame = doc.select("div.items-view").select("div.item-container");
-                        int elCount= frame.size();
+                        int elCount = frame.size();
 
-                        for (int i=0; i<elCount;i++) {
+                        for (int i = 0; i < elCount; i++) {
                             //frame.get(0).select("span").attr("aria-label")
                             String desc = frame.select("div.item-container").get(i).select("a.item-title").text();
                             //String price = frame.get(0).select("span").attr("aria-label");
                             String price = frame.select("div.item-container").get(i).select("li.price-current").text();
-                            if(frame.select("div.item-container").get(i).select("li.price-ship").text().trim() != ""){
+                            if (frame.select("div.item-container").get(i).select("li.price-ship").text().trim() != "") {
                                 price += frame.select("div.item-container").get(i).select("li.price-ship").text().trim();
                             }
-                            String image = "https:"+frame.select("div.item-container").get(i).select("img").attr("src");
+                            String image = "https:" + frame.select("div.item-container").get(i).select("img").attr("src");
                             allMatches.add(new ProdBucket(
                                     desc,
                                     price,
@@ -305,37 +384,33 @@ public class PageLoader {
                         }
                         return Observable.just(allMatches);
                     } catch (Exception e) {
-                        return Observable.just(new ProdBucket(null, null, null));
+                        return Observable.just(allMatches);
                     }
-                })
-                .subscribe(s -> {
-                    EventBus.getDefault().post(new MessageEvent<List<ProdBucket>>((List<ProdBucket>) s));
-                    Log.e(TAG, "Success");
                 });
 
 
     }
 
 
-    public void getAmazonInfo(String upcCode) {
+    public Observable<List<ProdBucket>> getAmazonInfo(String upcCode) {
 
-        buildClientrxW(Settings.amazonEndpoint).loadProductPage("search-alias=aps", upcCode).subscribeOn(Schedulers.newThread())
+        return buildClientrxW(Settings.amazonEndpoint).loadProductPage("search-alias=aps", upcCode).subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
                 .flatMap(s -> {
                     Document doc = Jsoup.parse(s);
                     List<ProdBucket> allMatches = new ArrayList<ProdBucket>();
-                    allMatches.add(new ProdBucket("Amazon"+Spacer));
+                    allMatches.add(new ProdBucket("Amazon" + Spacer));
                     try {
                         //Elements frame = doc.select("div.s-item-container");
                         Elements frame = doc.select("li.celwidget");
-                        int elCount= frame.size();
+                        int elCount = frame.size();
 
-                        for (int i=0; i<elCount;i++) {
+                        for (int i = 0; i < elCount; i++) {
                             //frame.get(0).select("span").attr("aria-label")
                             String desc = frame.get(i).select("h2").text();
                             //String price = frame.get(0).select("span").attr("aria-label");
-                            String price = "$"+getAmazonPrice(frame.get(i));
-                            String image = frame.get(i). select("img").attr("src");
+                            String price = "$" + getAmazonPrice(frame.get(i));
+                            String image = frame.get(i).select("img").attr("src");
                             allMatches.add(new ProdBucket(
                                     desc,
                                     price,
@@ -345,37 +420,33 @@ public class PageLoader {
                         }
                         return Observable.just(allMatches);
                     } catch (Exception e) {
-                        return Observable.just(new ProdBucket(null, null, null));
+                        return Observable.just(allMatches);
                     }
-                })
-                .subscribe(s -> {
-                    EventBus.getDefault().post(new MessageEvent<List<ProdBucket>>((List<ProdBucket>) s));
-                    Log.e(TAG, "Success");
                 });
 
 
     }
 
-    String getAmazonPrice(Element  els) {
+    String getAmazonPrice(Element els) {
         String lowestPrice;
 
 
         //List<Float> slist = new ArrayList<>();
-       // for (Element els : elements) {
-            String conditonalPrice = (els.select("span").attr("aria-label").replace("$", ""));
-            if (conditonalPrice != "") {
-                return ( ((conditonalPrice.contains("-")) ? conditonalPrice.split("-")[0] : conditonalPrice));
-            } else if (els.select("td.a-text-left").select("span.a-size-small").text().replace("$", "") != "") {
-                String backupPrice = els.select("td.a-text-left").select("span.a-size-small").text().replace("$", "");
-                return ((backupPrice.contains("-")) ? backupPrice.split("-")[0] : backupPrice);
-            } else if (els.select("span.a-size-base").select(".a-color-base").text().replace("$", "") != "") {
-                String backupPrice = els.select("span.a-size-base").select(".a-color-base").text().replace("$", "").trim();
-                if (backupPrice.contains(" ")) {//New price
-                    backupPrice = backupPrice.split(" ")[0];
-                }//Used price?
+        // for (Element els : elements) {
+        String conditonalPrice = (els.select("span").attr("aria-label").replace("$", ""));
+        if (conditonalPrice != "") {
+            return (((conditonalPrice.contains("-")) ? conditonalPrice.split("-")[0] : conditonalPrice));
+        } else if (els.select("td.a-text-left").select("span.a-size-small").text().replace("$", "") != "") {
+            String backupPrice = els.select("td.a-text-left").select("span.a-size-small").text().replace("$", "");
+            return ((backupPrice.contains("-")) ? backupPrice.split("-")[0] : backupPrice);
+        } else if (els.select("span.a-size-base").select(".a-color-base").text().replace("$", "") != "") {
+            String backupPrice = els.select("span.a-size-base").select(".a-color-base").text().replace("$", "").trim();
+            if (backupPrice.contains(" ")) {//New price
+                backupPrice = backupPrice.split(" ")[0];
+            }//Used price?
 
-               return ((backupPrice.contains("-")) ? backupPrice.split("-")[0] : backupPrice);
-            }
+            return ((backupPrice.contains("-")) ? backupPrice.split("-")[0] : backupPrice);
+        }
         //}
 
         //Collections.sort(slist);

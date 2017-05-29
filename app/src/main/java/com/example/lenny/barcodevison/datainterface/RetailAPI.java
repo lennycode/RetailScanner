@@ -30,10 +30,14 @@ public interface RetailAPI {
                                          @Query("N") String n,
                                          @Query("isNodeId") int i);
 
-
+        //http://www.bestbuy.com/site/searchpage.jsp?st=703113017230&_dyncharset=UTF-8&id=pcat17071&type=page&sc=Global&cp=1&nrp=&sp=&qp=&list=n&af=true&iht=y&usc=All+Categories&ks=960&keys=keys
     @GET("site/searchpage.jsp")
     Observable<String> loadBbProductPage(@QueryMap Map<String, String> params);
 
 
-//http://www.bestbuy.com/site/searchpage.jsp?st=703113017230&_dyncharset=UTF-8&id=pcat17071&type=page&sc=Global&cp=1&nrp=&sp=&qp=&list=n&af=true&iht=y&usc=All+Categories&ks=960&keys=keys
+//    Request URL:http://www.ebay.com/sch/i.html?_sacat=0&_nkw=722868829905&_sop=15
+    @GET("sch/i.html?_sacat=0&_nkw={upc}&_sop=15")
+    Observable<String> loadEbayProductPage(@Path("upc") String upc);
+
+
 }

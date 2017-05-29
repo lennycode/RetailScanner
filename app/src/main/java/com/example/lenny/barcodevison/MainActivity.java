@@ -9,6 +9,8 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.media.MediaPlayer;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -29,7 +31,9 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -42,22 +46,35 @@ import static com.google.zxing.BarcodeFormat.UPC_A;
 
 public class MainActivity extends Activity {
     @BindView(R.id.barcode_result) TextView barcodeResult;
-    @BindView(R.id.iv) ImageView imageBarcode;
-    @BindView(R.id.itemDescription) TextView itemDescription;
-    @BindView(R.id.itemPrice) TextView itemPrice;
-    @BindView(R.id.itemPicture) ImageView itemPic;
-
+     @BindView(R.id.iv) ImageView imageBarcode;
+    RecyclerView.Adapter myAdapter = null;
+    @BindView(R.id.lstResult)RecyclerView resultList;
+    List<ProdBucket> prodList = new ArrayList<>();
     Bitmap bitmap = null;
     Pattern upcPattern = Pattern.compile("^\\d{12}");
+    RecyclerView.LayoutManager layoutManager;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         ButterKnife.bind(this);
 
         barcodeResult = (TextView) findViewById(R.id.barcode_result);
         imageBarcode = (ImageView) findViewById(R.id.iv);
+        resultList.setHasFixedSize(true);
+        layoutManager = new LinearLayoutManager(this);
 
+
+        myAdapter = new ResultAdapter(this, prodList );
+        resultList.setAdapter(myAdapter);
+
+        resultList.setLayoutManager(layoutManager);
+        //new PageLoader().getWalmartInfo("031604016173");
+        //new PageLoader().getAmazonInfo("031604016173");
+         //new PageLoader().getWalmartInfo("722868829905");
+         //new PageLoader().getAmazonInfo("722868829905");
+        new PageLoader().getBBInfo("703113017230");
     }
 
     public void scanBacode(View v) {
@@ -129,18 +146,25 @@ public class MainActivity extends Activity {
 
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onMessageEvent(MessageEvent event) {
+    public synchronized void onMessageEvent(MessageEvent event) {
 
-        if (((ProdBucket)event.packet).itemDescription != null) {
-            itemDescription.setText( ((ProdBucket)event.packet).itemDescription);
-            itemPrice.setText(((ProdBucket)event.packet).itemPrice);
-            Picasso.with(this)
-                    .load(((ProdBucket) event.packet).itemPic)
-                    .resize(400, 400)
-                    .into(itemPic);
-        }else{
-            Toast.makeText(this, "Item not found", Toast.LENGTH_SHORT).show();
-        }
+             for (ProdBucket p : (ArrayList<ProdBucket>) event.packet) {
+                 prodList.add(p);
+
+         }
+         myAdapter.notifyDataSetChanged();
+
+
+//        if (((ProdBucket)event.packet).itemDescription != null) {
+////            itemDescription.setText( ((ProdBucket)event.packet).itemDescription);
+////            itemPrice.setText(((ProdBucket)event.packet).itemPrice);
+////            Picasso.with(this)
+////                    .load(((ProdBucket) event.packet).itemPic)
+////                    .resize(400, 400)
+////                    .into(itemPic);
+//        }else{
+//            Toast.makeText(this, "Item not found", Toast.LENGTH_SHORT).show();
+//        }
 
     }
 

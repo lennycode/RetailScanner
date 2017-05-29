@@ -46,6 +46,7 @@ import retrofit2.converter.scalars.ScalarsConverterFactory;
 
 public class PageLoader {
     private static final String TAG = "APILoader";
+    private static final String Spacer = "";
     NumberFormat formatter = NumberFormat.getCurrencyInstance();
 
     private RetailAPI buildClient() {
@@ -164,7 +165,7 @@ public class PageLoader {
                             ObjectMapper srMapper;
                             Map<String, Object> map = new HashMap<String, Object>();
                             List<ProdBucket> allMatches = new ArrayList<ProdBucket>();
-                            allMatches.add(new ProdBucket("Walmart"));
+                            allMatches.add(new ProdBucket("Walmart"+ Spacer) );
                             try {
                                 srMapper = new ObjectMapper();
                                 Matcher tmpJson = px.matcher(s);
@@ -239,21 +240,19 @@ public class PageLoader {
                 .flatMap(s -> {
                     Document doc = Jsoup.parse(s);
                     List<ProdBucket> allMatches = new ArrayList<ProdBucket>();
-                    allMatches.add(new ProdBucket("BB"));
+                    allMatches.add(new ProdBucket("Best Buy"+Spacer));
                     try {
                         //Elements frame = doc.select("div.s-item-container");
                         Elements frame =  doc.select("div.list-items") ;
                         int elCount= frame.size();
 
                         for (int i=0; i<elCount;i++) {
-                            //frame.get(0).select("span").attr("aria-label")
+
                             String desc = frame.select("div.list-item").get(i).select("h4").text();
-                            //String price = frame.get(0).select("span").attr("aria-label");
-                            String price = frame.select("div.item-container").get(i).select("li.price-current").text();
-                            if(frame.select("div.item-container").get(i).select("li.price-ship").text().trim() != ""){
-                                price += frame.select("div.item-container").get(i).select("li.price-ship").text().trim();
-                            }
-                            String image = "https:"+frame.select("div.item-container").get(i).select("img").attr("src");
+
+                            String price ="$"+frame.select("div.pb-purchase-price").select("span").get(0).attr("aria-label").replace("Your price for this item is ","");
+
+                            String image = frame.select("div.thumb").select("img").attr("data-src").split(";")[0];
                             allMatches.add(new ProdBucket(
                                     desc,
                                     price,
@@ -282,7 +281,7 @@ public class PageLoader {
                 .flatMap(s -> {
                     Document doc = Jsoup.parse(s);
                     List<ProdBucket> allMatches = new ArrayList<ProdBucket>();
-                    allMatches.add(new ProdBucket("NewEgg"));
+                    allMatches.add(new ProdBucket("NewEgg"+Spacer));
                     try {
                         //Elements frame = doc.select("div.s-item-container");
                         Elements frame = doc.select("div.items-view").select("div.item-container");
@@ -325,7 +324,7 @@ public class PageLoader {
                 .flatMap(s -> {
                     Document doc = Jsoup.parse(s);
                     List<ProdBucket> allMatches = new ArrayList<ProdBucket>();
-                    allMatches.add(new ProdBucket("Amazon"));
+                    allMatches.add(new ProdBucket("Amazon"+Spacer));
                     try {
                         //Elements frame = doc.select("div.s-item-container");
                         Elements frame = doc.select("li.celwidget");
@@ -335,7 +334,7 @@ public class PageLoader {
                             //frame.get(0).select("span").attr("aria-label")
                             String desc = frame.get(i).select("h2").text();
                             //String price = frame.get(0).select("span").attr("aria-label");
-                            String price = getAmazonPrice(frame.get(i));
+                            String price = "$"+getAmazonPrice(frame.get(i));
                             String image = frame.get(i). select("img").attr("src");
                             allMatches.add(new ProdBucket(
                                     desc,

@@ -28,7 +28,7 @@
 
     <TextView
         android:visibility="visible"
-        android:text="ewewerqwerqwerqw"
+        android:text=""
         android:layout_width="124dp"
         android:layout_height="22dp"
         android:layout_gravity="center"
@@ -47,7 +47,7 @@
         app:layout_constraintVertical_bias="0.0" />
    <ImageView
        android:visibility="visible"
-       android:src="@drawable/common_google_signin_btn_text_light"
+
        android:id="@+id/iv"
        android:layout_width="wrap_content"
        android:layout_height="wrap_content"
@@ -81,28 +81,7 @@
         app:layout_constraintVertical_bias="0.823"
         tools:layout_editor_absoluteY="126dp" />
 
-    <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:layout_gravity="center"-->
-        <!--android:textSize="20dp"-->
-        <!--android:gravity="center"-->
-        <!--android:id="@+id/itemDescription"/>-->
 
-    <!--<TextView-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:layout_gravity="center"-->
-        <!--android:textSize="20dp"-->
-        <!--android:gravity="center"-->
-        <!--android:id="@+id/itemPrice"/>-->
-
-    <!--<ImageView-->
-        <!--android:layout_width="wrap_content"-->
-        <!--android:layout_height="wrap_content"-->
-        <!--android:layout_gravity="center"-->
-
-        <!--android:gravity="center"-->
-        <!--android:id="@+id/itemPicture"/>-->
 
 
 </android.support.constraint.ConstraintLayout>

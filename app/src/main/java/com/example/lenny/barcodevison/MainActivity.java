@@ -73,8 +73,11 @@ public class MainActivity extends Activity {
         //new PageLoader().getWalmartInfo("031604016173");
         //new PageLoader().getAmazonInfo("031604016173");
          //new PageLoader().getWalmartInfo("722868829905");
-         //new PageLoader().getAmazonInfo("722868829905");
+        //  new PageLoader().getAmazonInfo("722868829905");
         new PageLoader().getBBInfo("703113017230");
+        new PageLoader().getAmazonInfo("703113017230");
+        new PageLoader().getNEInfo("703113017230");
+
     }
 
     public void scanBacode(View v) {

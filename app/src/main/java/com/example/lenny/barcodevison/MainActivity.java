@@ -98,6 +98,12 @@ public class MainActivity extends Activity {
                     try {
                         MediaPlayer ring= MediaPlayer.create(MainActivity.this,R.raw.scan);
                         ring.start();
+
+                        //TODO: Pepsi cola and other products use UPC-E, which is 6 digits
+                        //Differences between UPC Type A and E
+
+                        //UPC-E is also called "zero suppressed UPC" because UPC-E compresses a normal 12 digit UPC-A number into a six digit code by "suppressing" the number system digit, trailing zeros in the manufacturers code and leading zeros in the product identification part of the bar code message. A seventh check digit is encoded into a parity pattern for the six main digits. UPC-E can thus be uncompressed back into a standard UPC-A 12 digit number.
+
                         bitmap = encodeAsBitmap(barcode.displayValue, BarcodeFormat.UPC_A, 600, 300);
                         imageBarcode.setImageBitmap(bitmap);
 //                        new PageLoader().getAmazonInfo(barcode.displayValue);

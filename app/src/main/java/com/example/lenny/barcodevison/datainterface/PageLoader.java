@@ -1,16 +1,11 @@
 package com.example.lenny.barcodevison.datainterface;
 
 import android.util.Log;
-
-
 import com.example.lenny.barcodevison.Config.Settings;
 import com.example.lenny.barcodevison.MessageEvent;
-
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.greenrobot.eventbus.EventBus;
-import org.greenrobot.eventbus.util.ExceptionToResourceMapping;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -19,15 +14,11 @@ import org.jsoup.select.Elements;
 import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
@@ -37,12 +28,8 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.logging.HttpLoggingInterceptor;
-import retrofit2.Call;
-import retrofit2.Callback;
-
 import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
-import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.converter.scalars.ScalarsConverterFactory;
 
 
@@ -50,68 +37,6 @@ public class PageLoader {
     private static final String TAG = "APILoader";
     private static final String Spacer = "                                                                                                                                              ";
     NumberFormat formatter = NumberFormat.getCurrencyInstance();
-
-    private RetailAPI buildClient() {
-
-        HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-        logging.setLevel(HttpLoggingInterceptor.Level.BODY);
-
-
-        OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
-        //Removed, causing an exception.
-        //httpClient.addInterceptor(logging);
-
-        Retrofit retrofit = new Retrofit.Builder()
-                .client(httpClient.build())
-                .addConverterFactory(GsonConverterFactory.create())
-                .baseUrl(Settings.amazonEndpoint)
-                .build();
-
-        return retrofit.create(RetailAPI.class);
-
-    }
-
-    private RetailAPI buildClientrxA() {
-
-        HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-        logging.setLevel(HttpLoggingInterceptor.Level.BODY);
-
-
-        OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
-        httpClient.addInterceptor(new Interceptor() {
-            @Override
-            public Response intercept(Chain chain) throws IOException {
-                Request original = chain.request();
-
-
-                Request request = new Request.Builder()
-
-                        .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:52.0) Gecko/20100101 Firefox/52.0")
-                        .addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,**/;q=0.8")
-                        .addHeader("Accept-Language", "en-US,en;q=0.5")
-                        .addHeader("DNT", "1")
-                        .addHeader("Connection", "keep-alive")
-                        .addHeader("Upgrade-Insecure-Requests", "1")
-                        .build();
-
-                Response response = chain.proceed(request);
-
-                // Customize or return the response
-                return response;
-            }
-        });
-
-        Retrofit retrofit = new Retrofit.Builder()
-                .client(httpClient.build())
-                .addConverterFactory(ScalarsConverterFactory.create())
-
-                .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
-                .baseUrl(Settings.amazonEndpoint)
-                .build();
-
-        return retrofit.create(RetailAPI.class);
-
-    }
 
     private RetailAPI buildClientrxW(String endPoint) {
 
@@ -126,9 +51,7 @@ public class PageLoader {
                 Request original = chain.request();
                 Response response = null;
                 try {
-
                     Request request = original.newBuilder()
-
                             .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:52.0) Gecko/20100101 Firefox/52.0")
                             .addHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,**/;q=0.8")
                             .addHeader("Accept-Language", "en-US,en;q=0.5")
@@ -149,7 +72,6 @@ public class PageLoader {
         Retrofit retrofit = new Retrofit.Builder()
                 .client(httpClient.build())
                 .addConverterFactory(ScalarsConverterFactory.create())
-
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                 .baseUrl(endPoint)
                 .build();
@@ -214,25 +136,6 @@ public class PageLoader {
 
                 });
 
-
-// JSOUP fails on this page, bug listed
-//                    Document doc = Jsoup.parse(s);
-//                    try {
-//                        //Elements frame = doc.select("div.s-item-container");
-//                       // Elements frame = doc.select("li.celwidget");
-//                        Elements frame = doc.select("div").attr("data-tl-id","ProductTileListView-0");
-//                        //frame.get(0).select("span").attr("aria-label")
-//                        String desc = frame.get(0).select("h2").text();
-//                        //String price = frame.get(0).select("span").attr("aria-label");
-//                        String price =    findLowest(frame);
-//                        String image = frame.get(0).select("img").attr("src");
-//                        return Observable.just(new ProdBucket(desc, price, image));
-//                    }catch (Exception e){
-//                        return Observable.just(new ProdBucket(null, null, null));
-//                    }
-        //    } )
-
-
     }
 
 
@@ -256,13 +159,9 @@ public class PageLoader {
                                     srMapper.readTree(json).path("primaryOffer").path("offerPrice").toString().replace("\"", ""),
                                     srMapper.readTree(json).path("imageUrl").toString().replace("\"", "")
                             ));
-                            //map = srMapper.readValue(tmpJson.group(1)+"}", new TypeReference<HashMap<String, Object>>() {}
+
                         }
-
-
                         return Observable.just(allMatches);
-
-
                     } catch (Exception e) {
                         return Observable.just(allMatches);
                     }
@@ -272,28 +171,7 @@ public class PageLoader {
             Log.e(TAG, "Success");
         });
 
-
-// JSOUP fails on this page, bug listed
-//                    Document doc = Jsoup.parse(s);
-//                    try {
-//                        //Elements frame = doc.select("div.s-item-container");
-//                       // Elements frame = doc.select("li.celwidget");
-//                        Elements frame = doc.select("div").attr("data-tl-id","ProductTileListView-0");
-//                        //frame.get(0).select("span").attr("aria-label")
-//                        String desc = frame.get(0).select("h2").text();
-//                        //String price = frame.get(0).select("span").attr("aria-label");
-//                        String price =    findLowest(frame);
-//                        String image = frame.get(0).select("img").attr("src");
-//                        return Observable.just(new ProdBucket(desc, price, image));
-//                    }catch (Exception e){
-//                        return Observable.just(new ProdBucket(null, null, null));
-//                    }
-        //    } )
-
-
     }
-
-    //http://www.bestbuy.com/site/searchpage.jsp?st=703113017230&_dyncharset=UTF-8&id=pcat17071&type=page&sc=Global&cp=1&nrp=&sp=&qp=&list=n&af=true&iht=y&usc=All+Categories&ks=960&keys=keys
 
 
     public Observable<List<ProdBucket>> getBBInfo(String upcCode) {
@@ -315,7 +193,6 @@ public class PageLoader {
         paramMap.put("ks", "960");
         paramMap.put("keys", "keys");
         return buildClientrxW(Settings.bestbuyEndpoint).loadBbProductPage(paramMap).subscribeOn(Schedulers.newThread())
-
                 .observeOn(AndroidSchedulers.mainThread())
                 .flatMap(s -> {
                     Document doc = Jsoup.parse(s);
@@ -353,9 +230,7 @@ public class PageLoader {
     }
 
     public Observable<List<ProdBucket>> getNEInfo(String upcCode) {
-
         return buildClientrxW(Settings.neweggEndpoint).loadNeProductPage("ENE", 0, "BESTMATCH", upcCode, "-1", 1).subscribeOn(Schedulers.newThread())
-
                 .observeOn(AndroidSchedulers.mainThread())
                 .flatMap(s -> {
                     Document doc = Jsoup.parse(s);
@@ -367,9 +242,7 @@ public class PageLoader {
                         int elCount = frame.size();
 
                         for (int i = 0; i < elCount; i++) {
-                            //frame.get(0).select("span").attr("aria-label")
                             String desc = frame.select("div.item-container").get(i).select("a.item-title").text();
-                            //String price = frame.get(0).select("span").attr("aria-label");
                             String price = frame.select("div.item-container").get(i).select("li.price-current").text();
                             if (frame.select("div.item-container").get(i).select("li.price-ship").text().trim() != "") {
                                 price += frame.select("div.item-container").get(i).select("li.price-ship").text().trim();
@@ -393,7 +266,6 @@ public class PageLoader {
 
 
     public Observable<List<ProdBucket>> getAmazonInfo(String upcCode) {
-
         return buildClientrxW(Settings.amazonEndpoint).loadProductPage("search-alias=aps", upcCode).subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
                 .flatMap(s -> {
@@ -428,11 +300,6 @@ public class PageLoader {
     }
 
     String getAmazonPrice(Element els) {
-        String lowestPrice;
-
-
-        //List<Float> slist = new ArrayList<>();
-        // for (Element els : elements) {
         String conditonalPrice = (els.select("span").attr("aria-label").replace("$", ""));
         if (conditonalPrice != "") {
             return (((conditonalPrice.contains("-")) ? conditonalPrice.split("-")[0] : conditonalPrice));
@@ -447,13 +314,7 @@ public class PageLoader {
 
             return ((backupPrice.contains("-")) ? backupPrice.split("-")[0] : backupPrice);
         }
-        //}
-
-        //Collections.sort(slist);
         return ("$0.00");
-
-        //return formatter.format(slist.get(0));
-
     }
 
 
